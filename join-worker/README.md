@@ -25,6 +25,18 @@ Add multiple worker nodes into kubernetes cluster simultaneously with bare minim
 3. uv sync
 4. source venv/bin/activate
 5. Open ```hosts.ini``` file. and replce master and worker nodes with correct IPs, host names, and passwords.
+
+```
+[workers]
+192.168.1.6 ansible_user=vboxuser1 ansible_ssh_pass=ssh_pass ansible_become_pass=sudo_pass
+192.168.1.3 ansible_user=vboxuser2 ansible_ssh_pass=ssh_pass ansible_become_pass=sudo_pass
+
+[master]
+192.168.1.13 ansible_user=""
+```
+
+Add as many workers as required.
+
 6. Run the following command to initilize the playbook
 
 ```
@@ -45,3 +57,5 @@ After all these steps you should be able to join worker nodes to master node(s).
 4. Add worker to master with a unique node name.
 
 Note: Unique node is acheived by appending the linux username with random number ensuring in case of clash worker doesn't fail to join master. 
+
+![Final Output](image.png)
