@@ -1,5 +1,7 @@
+# Multi machine worker nodes into master node.
+
 ## tl;dr
-This simple repo helps you join multiple worker nodes to your master node.
+Add multiple worker nodes into kubernetes cluster simultaneously with bare minimum work.
 
 ### Prerequisites
 
@@ -31,3 +33,15 @@ ansible-playbook -i hosts.ini join-worker.yml -K  -v
 ```
 
 This will prompt for password of master node machine.
+
+After all these steps you should be able to join worker nodes to master node(s).
+
+
+## What this will do.
+
+1. Ensure master node has active production grade kubeadm kubernetes cluster.
+2. Create token and hash using kubeconfig present with current user.
+3. Few checks on each worker weather all components required by kubernetes installed or not.
+4. Add worker to master with a unique node name.
+
+Note: Unique node is acheived by appending the linux username with random number ensuring in case of clash worker doesn't fail to join master. 
