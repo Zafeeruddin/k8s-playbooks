@@ -25,6 +25,7 @@ This playbook automates the complete setup of ArgoCD on your Kubernetes cluster,
 
 1. **Initialize the Python environment:**
    ```bash
+   cd deploy-argocd
    uv sync
    ```
    This creates a virtual environment and installs all required dependencies (primarily Ansible).
@@ -42,8 +43,8 @@ Create or edit `ansible/hosts.ini` with your Kubernetes master node details:
 
 ```ini
 [k8s_master]
-192.168.1.13 ansible_user=vboxuser1
-192.168.1.6 ansible_user=vboxuser2
+192.168.0.146 ansible_user=host1 ansible_password=password ansible_become_pass=password
+192.168.0.141 ansible_user=host2 ansible_password=password ansible_become_pass=password
 ```
 
 Replace the IP addresses and usernames with your actual Kubernetes node information.
@@ -53,7 +54,7 @@ Replace the IP addresses and usernames with your actual Kubernetes node informat
 Create an encrypted secrets file to store sensitive information:
 
 ```bash
-ansible-vault create secrets.yml
+ansible-vault create asnible/secrets.yml
 ```
 
 You'll be prompted to create a vault password. Remember this password as you'll need it to run the playbook.
@@ -70,16 +71,31 @@ To generate a GitHub personal access token:
 2. Create a token with `repo` access
 3. Copy the token and add it to your `secrets.yml`
 
+
+### Repo Configurations
+
+Edit configs/repos.yml file to store add all repos:
+
+```yaml
+- name: infra-repo
+   url: https://github.com/<username>/<repo-name>
+   username: "{{ github_username }}"
+   password: "{{ github_token }}"
+   project: default   
+```
+
+The username and token will be taken from secret.yml at runtime.
+
+
 ## Usage
 
 Run the playbook with:
 
 ```bash
-ansible-playbook -K -i ansible/hosts.ini ansible/setup-argocd.yml --ask-vault-pass
+ansible-playbook -i ansible/hosts.ini ansible/setup-argocd.yml --ask-vault-pass
 ```
 
 **Command breakdown:**
-- `-K`: Prompts for the sudo password (BECOME password)
 - `-i ansible/hosts.ini`: Specifies the inventory file
 - `--ask-vault-pass`: Prompts for the Ansible Vault password to decrypt `secrets.yml`
 
@@ -110,7 +126,7 @@ After successful execution:
 
 ## Customization
 
-You can modify the following variables in the playbook:
+You can modify the following variables in the ansible/conigs/configs.yml:
 
 - `argocd_namespace`: ArgoCD installation namespace (default: `argocd`)
 - `argocd_nodeport`: External port for accessing ArgoCD (default: `30080`)
