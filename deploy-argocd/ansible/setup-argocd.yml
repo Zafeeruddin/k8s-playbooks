@@ -1,7 +1,7 @@
 
 ---
 - name: Setup argocd in Kubernetes
-  hosts: localhost
+  hosts: k8s_master
   become: true
   vars:
     argocd_namespace: argocd
@@ -67,7 +67,7 @@
 
     - name: Login to ArgoCD CLI
       ansible.builtin.shell: |
-        argocd login localhost:{{ argocd_nodeport }} \
+        argocd login {{ ansible_default_ipv4.address }}:{{ argocd_nodeport }} \
         --username admin \
         --password {{ argocd_admin_password }} \
         --insecure
