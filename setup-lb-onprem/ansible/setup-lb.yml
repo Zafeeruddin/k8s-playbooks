@@ -1,0 +1,83 @@
+
+---
+- name: Setup Metal LB and ingress controller in Kubernetes
+  hosts: k8s_master
+  become: true
+
+  vars_files:
+  - secret.yml
+  - configs/repos.yml
+  - configs/configs.yml
+
+
+  tasks:
+  - name: Create MetalLB namespace
+    command: kubectl create namespace metallb-system  
+    register: metallb_ns
+    failed_when: false
+    changed_when: "'created' in metallb_ns.stdout"
+
+
+  - name: Install MetalLB components
+    command: kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/{{ config.metallb_version }}/config/manifests/metallb-native.yaml
+    register: metallb_install
+    changed_when: false
+
+  - name: Wait for MetalLB controller to be ready
+    command: kubectl -n metallb-system rollout status deploy/controller --timeout=120s
+    register: metallb_ready
+    changed_when: false
+
+  - name: Create MetalLB IPAddressPool
+    ansible.builtin.copy:
+      dest: /tmp/metallb-ip-pool.yaml
+      content: |
+        apiVersion: metallb.io/v1beta1
+        kind: IPAddressPool
+        metadata:
+          name: default-address-pool
+          namespace: metallb-system
+        spec:
+          addresses:
+            - "{{ config.ip_range }}"
+    notify: apply_metallb_ip_pool
+
+  - name: Create MetalLB L2Advertisement
+    ansible.builtin.copy:
+      dest: /tmp/metallb-l2.yaml
+      content: |
+        apiVersion: metallb.io/v1beta1
+        kind: L2Advertisement
+        metadata:
+          name: l2advertisement
+          namespace: metallb-system
+        spec:
+          ipAddressPools:
+            - default-address-pool
+    notify: apply_metallb_l2
+
+  - name: Install NGINX Ingress Controller (bare-metal friendly)
+    command: >
+      kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-{{ config.ingress_version }}/deploy/static/provider/baremetal/deploy.yaml
+
+  - name: Wait for NGINX Ingress to be ready
+    command: kubectl -n ingress-nginx rollout status deploy/ingress-nginx-controller --timeout=120s
+    register: ingress_ready
+    changed_when: false
+
+
+  - name: Patch nginx service as load balancer
+    command: "kubectl patch svc ingress-nginx-controller -n ingress-nginx -p '{\"spec\": {\"type\": \"LoadBalancer\"}}'"
+    register: nginx_patch
+    changed_when: false
+
+
+
+  handlers:
+    - name: apply_metallb_ip_pool
+      command: kubectl apply -f /tmp/metallb-ip-pool.yaml
+
+    - name: apply_metallb_l2
+      command: kubectl apply -f /tmp/metallb-l2.yaml
+
+
